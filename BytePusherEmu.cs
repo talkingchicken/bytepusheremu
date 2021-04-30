@@ -2,6 +2,7 @@
 
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Input;
 
 namespace bytepusheremu
@@ -12,6 +13,7 @@ namespace bytepusheremu
 		private SpriteBatch _spriteBatch;
 		private Texture2D _currentDisplay;
 		private CPU _gameCPU;
+		private DynamicSoundEffectInstance _soundEffect;
 
 
 		public BytePusherEmu()
@@ -24,10 +26,12 @@ namespace bytepusheremu
 		protected override void Initialize()
 		{
 			// TODO: Add your initialization logic here
+			_soundEffect = new DynamicSoundEffectInstance(15360, AudioChannels.Mono);
+			_soundEffect.Play();
 			_gameCPU = new CPU();
-
-			_graphics.PreferredBackBufferWidth = 1028;
-			_graphics.PreferredBackBufferHeight = 1028;
+			_gameCPU.LoadGame("testroms/Sprites.BytePusher");
+			_graphics.PreferredBackBufferWidth = 512;
+			_graphics.PreferredBackBufferHeight = 512;
 			_graphics.ApplyChanges();
 			TargetElapsedTime = TimeSpan.FromSeconds(1.0f/60);
 			base.Initialize();
@@ -46,9 +50,22 @@ namespace bytepusheremu
 				Exit();
 
 			// TODO: Add your update logic here
+			_gameCPU.SetKeyboardState(GetKeyboardState());
 
+			_gameCPU.RunOneFrame();
 
 			_currentDisplay = CreateTexture(_graphics.GraphicsDevice, _gameCPU.GetDisplay());
+
+			byte[] rawAudio = _gameCPU.GetAudio();
+			byte[] sixteenBitAudio = new byte[rawAudio.Length * 2];
+
+			for(int i = 0; i < rawAudio.Length; i++)
+			{
+				sixteenBitAudio[i*2] = 0;
+				sixteenBitAudio[i*2 + 1] = rawAudio[i];
+			}
+
+			_soundEffect.SubmitBuffer(sixteenBitAudio);
 			base.Update(gameTime);
 		}
 
@@ -95,6 +112,29 @@ namespace bytepusheremu
 			return texture;
 		}
 
-		
+		private bool[] GetKeyboardState()
+		{
+			bool[] keys = new bool[16];
+			KeyboardState state = Keyboard.GetState();
+
+			keys[0x1] = state.IsKeyDown(Keys.D1);
+			keys[0x2] = state.IsKeyDown(Keys.D2);
+			keys[0x3] = state.IsKeyDown(Keys.D3);
+			keys[0xC] = state.IsKeyDown(Keys.D4);
+			keys[0x4] = state.IsKeyDown(Keys.Q);
+			keys[0x5] = state.IsKeyDown(Keys.W);
+			keys[0x6] = state.IsKeyDown(Keys.E);
+			keys[0xD] = state.IsKeyDown(Keys.R);
+			keys[0x7] = state.IsKeyDown(Keys.A);
+			keys[0x8] = state.IsKeyDown(Keys.S);
+			keys[0x9] = state.IsKeyDown(Keys.D);
+			keys[0xE] = state.IsKeyDown(Keys.F);
+			keys[0xA] = state.IsKeyDown(Keys.Z);
+			keys[0x0] = state.IsKeyDown(Keys.X);
+			keys[0xB] = state.IsKeyDown(Keys.C);
+			keys[0xF] = state.IsKeyDown(Keys.V);
+
+			return keys;
+		}
 	}
 }
